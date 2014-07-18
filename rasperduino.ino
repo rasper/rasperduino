@@ -15,7 +15,7 @@ const int PIN_BUZZER = 6;
 
 // Set up 10M resistor between pins 4 & 2, pin 2 is sensor pin, add a wire and or foil if desired
 CapacitiveSensor capacitance_sensor = CapacitiveSensor(4,2);
-const long CAPACITANCE_SAMPLES = 60;
+const unsigned long CAPACITANCE_SAMPLES = 60;
 const unsigned long AUTOCAL_TIMEOUT = 1000; // recalibrate every n milliseconds
 //const unsigned long AUTOCAL_TIMEOUT = 0xFFFFFFFF; // turn off autocalibrate
 
@@ -34,14 +34,14 @@ boolean role;                                    // The main role variable, hold
 boolean role_ping_out = 1, role_pong_back = 0;   // The two different roles.
 
 // Configuration variables
-long burn_up_ms = 10000; // milliseconds per burn up cycle
-long cool_down_ms = 5000; // milliseconds per cool down cycle
+unsigned long burn_up_ms = 10000; // milliseconds per burn up cycle
+unsigned long cool_down_ms = 5000; // milliseconds per cool down cycle
 long sensor_threshold = 50;
 
 // State variables
-long last_ms = 0;
-long burn_ms = 0; // milliseconds of burn time
-long cool_ms = cool_down_ms; // milliseconds of cool time
+unsigned long last_ms = 0;
+unsigned long burn_ms = 0; // milliseconds of burn time
+unsigned long cool_ms = cool_down_ms; // milliseconds of cool time
 int burn_switch = -2; // burning if > 0, cooling if <= 0
 bool was_burning = false; // previous state
 const char * burn_state = COOLED;
@@ -198,7 +198,7 @@ void process_sensor_data()
 
 void update_status()
 {
-  long ms = millis();
+  unsigned long ms = millis();
   long delta = ms - last_ms;
   last_ms = ms;
   
@@ -269,8 +269,9 @@ void report_to_server()
 {
   if (burn_state != last_burn_state) {
     radio.stopListening();
-    if (radio.write(burn_state, strlen(burn_state))) {
-      Serial.print("\tR:");Serial.print(burn_state); // DEBUG
+    sprintf(payload, "%s %lu", burn_state, last_ms);
+    Serial.print("\tR:");Serial.print(payload); // DEBUG
+    if (radio.write(payload, strlen(payload))) {
     }
     else {
       Serial.print("\tReport to server failed"); // DEBUG
