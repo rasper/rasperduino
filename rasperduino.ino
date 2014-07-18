@@ -267,4 +267,14 @@ void update_buzzer()
 
 void report_to_server()
 {
+  if (burn_state != last_burn_state) {
+    radio.stopListening();
+    if (radio.write(burn_state, strlen(burn_state))) {
+      Serial.print("\tR:");Serial.print(burn_state); // DEBUG
+    }
+    else {
+      Serial.print("\tReport to server failed"); // DEBUG
+    }
+    radio.startListening();
+  }
 }
