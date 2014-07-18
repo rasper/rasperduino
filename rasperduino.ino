@@ -39,13 +39,13 @@ unsigned long cool_down_ms = 5000; // milliseconds per cool down cycle
 long sensor_threshold = 50;
 
 // State variables
-unsigned long last_ms = 0;
-unsigned long burn_ms = 0; // milliseconds of burn time
-unsigned long cool_ms = cool_down_ms; // milliseconds of cool time
-int burn_switch = -2; // burning if > 0, cooling if <= 0
-bool was_burning = false; // previous state
-const char * burn_state = COOLED;
-const char * last_burn_state = COOLED;
+unsigned long last_ms;
+unsigned long burn_ms; // milliseconds of burn time
+unsigned long cool_ms; // milliseconds of cool time
+int burn_switch; // burning if > 0, cooling if <= 0
+bool was_burning; // previous state
+const char * burn_state;
+const char * last_burn_state;
 
 // Tweaking constants
 const int BURN_SWITCH_OFF = -2;
@@ -55,6 +55,7 @@ const long DELAY_MS = 250;
 
 void setup()
 {
+  reset_state();
   Serial.begin(57600);
   setup_capacitance_sensor();
   setup_buzzer();
@@ -200,10 +201,10 @@ void start_cool()
 void update_buzzer()
 {
   if (burn_state == BURNED) {
-    analogWrite(PIN_BUZZER, BUZZER_VOLUME);
+    buzzer_on();
   }
   else {
-    digitalWrite(PIN_BUZZER, LOW);
+    buzzer_off();
   }
 }
 
@@ -249,18 +250,18 @@ void process_server_message()
   &&
   (strncmp("CST", payload, 3) || config_sensor_threshold(payload+3))
   &&
-  (strncmp("TRS", payload, 3) || timer_reset())
+  (strncmp("RST", payload, 3) || reset_state())
   ;
 }
 
 int buzzer_on()
 {
-  return 0;
+  analogWrite(PIN_BUZZER, BUZZER_VOLUME);
 }
 
 int buzzer_off()
 {
-  return 0;
+  digitalWrite(PIN_BUZZER, LOW);
 }
 
 int config_burn_up(const char args[])
@@ -284,8 +285,15 @@ int config_sensor_threshold(const char args[])
   return 0;
 }
 
-int timer_reset()
+int reset_state()
 {
+  last_ms = 0;
+  burn_ms = 0;
+  cool_ms = cool_down_ms;
+  burn_switch = -2;
+  was_burning = false;
+  burn_state = COOLED;
+  last_burn_state = COOLED;
   return 0;
 }
 
