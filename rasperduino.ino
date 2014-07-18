@@ -109,64 +109,6 @@ void loop()
   delay(DELAY_MS);
 }
 
-void process_server_messages()
-{
-  while (radio.available()) {
-    unsigned char length = radio.getDynamicPayloadSize();
-    radio.read(payload, length);
-    payload[length] = '\0'; // NULL terminate to make string processing simpler
-    Serial.println(payload); // DEBUG
-    (strncmp("BON", payload, 3) || buzzer_on())
-    &&
-    (strncmp("BOF", payload, 3) || buzzer_off())
-    &&
-    (strncmp("CBU", payload, 3) || config_burn_up(payload+3))
-    &&
-    (strncmp("CCD", payload, 3) || config_cool_down(payload+3))
-    &&
-    (strncmp("CST", payload, 3) || config_sensor_threshold(payload+3))
-    &&
-    (strncmp("TRS", payload, 3) || timer_reset())
-    ;
-  }
-}
-
-int buzzer_on()
-{
-  return 0;
-}
-
-int buzzer_off()
-{
-  return 0;
-}
-
-int config_burn_up(const char args[])
-{
-  long val = atol(args);
-  if (val > 0 && val <= 86400000) burn_up_ms = val * 1000;
-  return 0;
-}
-
-int config_cool_down(const char args[])
-{
-  long val = atol(args);
-  if (val > 0 && val <= 86400000) cool_down_ms = val * 1000;
-  return 0;
-}
-
-int config_sensor_threshold(const char args[])
-{
-  long val = atol(args);
-  if (val > 0) sensor_threshold = val;
-  return 0;
-}
-
-int timer_reset()
-{
-  return 0;
-}
-
 void process_sensor_data()
 {
   long val = capacitance_sensor.capacitiveSensor(CAPACITANCE_SAMPLES);
@@ -272,6 +214,7 @@ void report_to_server()
     sprintf(payload, "%s %lu", burn_state, last_ms);
     Serial.print("\tR:");Serial.print(payload); // DEBUG
     if (radio.write(payload, strlen(payload))) {
+      process_server_ack_messages();
     }
     else {
       Serial.print("\tReport to server failed"); // DEBUG
@@ -279,3 +222,71 @@ void report_to_server()
     radio.startListening();
   }
 }
+
+void process_server_messages()
+{
+  while (radio.available()) process_server_message();
+}
+
+void process_server_ack_messages()
+{
+  while (radio.isAckPayloadAvailable()) process_server_message();
+}
+
+void process_server_message()
+{
+  unsigned char length = radio.getDynamicPayloadSize();
+  radio.read(payload, length);
+  payload[length] = '\0'; // NULL terminate to make string processing simpler
+  Serial.println(payload); // DEBUG
+  (strncmp("BON", payload, 3) || buzzer_on())
+  &&
+  (strncmp("BOF", payload, 3) || buzzer_off())
+  &&
+  (strncmp("CBU", payload, 3) || config_burn_up(payload+3))
+  &&
+  (strncmp("CCD", payload, 3) || config_cool_down(payload+3))
+  &&
+  (strncmp("CST", payload, 3) || config_sensor_threshold(payload+3))
+  &&
+  (strncmp("TRS", payload, 3) || timer_reset())
+  ;
+}
+
+int buzzer_on()
+{
+  return 0;
+}
+
+int buzzer_off()
+{
+  return 0;
+}
+
+int config_burn_up(const char args[])
+{
+  long val = atol(args);
+  if (val > 0 && val <= 86400000) burn_up_ms = val * 1000;
+  return 0;
+}
+
+int config_cool_down(const char args[])
+{
+  long val = atol(args);
+  if (val > 0 && val <= 86400000) cool_down_ms = val * 1000;
+  return 0;
+}
+
+int config_sensor_threshold(const char args[])
+{
+  long val = atol(args);
+  if (val > 0) sensor_threshold = val;
+  return 0;
+}
+
+int timer_reset()
+{
+  return 0;
+}
+
+
