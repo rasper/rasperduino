@@ -10,6 +10,9 @@ const char BURN[] = "BURN";
 const char COOL[] = "COOL";
 const char COOLED[] = "COOLED";
 
+// Set up reset button on pin 7
+const int PIN_RESET = 7;
+
 // Set up buzzer on pin 6
 const int PIN_BUZZER = 6;
 
@@ -55,6 +58,7 @@ const long DELAY_MS = 250;
 
 void setup()
 {
+  pinMode(PIN_RESET, INPUT_PULLUP);
   reset_state();
   Serial.begin(57600);
   setup_capacitance_sensor();
@@ -99,6 +103,7 @@ void setup_radio()
 void loop()
 {
   Serial.print(burn_state);Serial.print('\t');Serial.print(burn_ms);Serial.print('\t');Serial.print(cool_ms); // DEBUG
+  check_reset();
   process_server_messages();
   process_sensor_data();
   update_status();
@@ -108,6 +113,11 @@ void loop()
   last_burn_state = burn_state;
   Serial.println(); // DEBUG
   delay(DELAY_MS);
+}
+
+void check_reset()
+{
+  if (digitalRead(PIN_RESET) == LOW) reset_state();
 }
 
 void process_sensor_data()
