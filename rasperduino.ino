@@ -4,6 +4,12 @@
 #include "RF24.h"
 #include "printf.h"
 
+// Burn states
+const char BURNED[] = "BURNED";
+const char BURN[] = "BURN";
+const char COOL[] = "COOL";
+const char COOLED[] = "COOLED";
+
 // Set up buzzer on pin 6
 const int PIN_BUZZER = 6;
 
@@ -38,6 +44,8 @@ long burn_ms = 0; // milliseconds of burn time
 long cool_ms = cool_down_ms; // milliseconds of cool time
 int burn_switch = -2; // burning if > 0, cooling if <= 0
 bool was_burning = false; // previous state
+const char * burn_state = COOLED;
+const char * last_burn_state = COOLED;
 
 // Tweaking constants
 const int BURN_SWITCH_OFF = -2;
@@ -89,13 +97,14 @@ void setup_radio()
 
 void loop()
 {
-  Serial.print(burn_ms);Serial.print("\t");Serial.print(cool_ms); // DEBUG
+  Serial.print(burn_state);Serial.print('\t');Serial.print(burn_ms);Serial.print('\t');Serial.print(cool_ms); // DEBUG
   process_server_messages();
   process_sensor_data();
   update_status();
   update_buzzer();
-  //report_to_server();
+  report_to_server();
   was_burning = burn_switch > 0;
+  last_burn_state = burn_state;
   Serial.println(); // DEBUG
   delay(DELAY_MS);
 }
@@ -197,12 +206,20 @@ void update_status()
     burn_ms = min(burn_ms + delta, burn_up_ms);
     if (!was_burning) {
       start_burn();
+      burn_state = BURN;
+    }
+    else if (burn_ms == burn_up_ms) {
+      burn_state = BURNED;
     }
   }
   else {
     cool_ms = min(cool_ms + delta, cool_down_ms);
     if (was_burning) {
       start_cool();
+      burn_state = COOL;
+    }
+    else if (cool_ms == cool_down_ms) {
+      burn_state = COOLED;
     }
   }
   
@@ -240,10 +257,14 @@ void start_cool()
 
 void update_buzzer()
 {
-  if (burn_switch > 0 && burn_ms == burn_up_ms) {
+  if (burn_state == BURNED) {
     analogWrite(PIN_BUZZER, BUZZER_VOLUME);
   }
   else {
     digitalWrite(PIN_BUZZER, LOW);
   }
+}
+
+void report_to_server()
+{
 }
