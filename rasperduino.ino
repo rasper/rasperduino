@@ -92,8 +92,8 @@ void setup_radio()
   radio.setPALevel(RF24_PA_MAX);
   radio.setRetries(15,15);
   radio.setChannel(CHANNEL);
-  radio.openWritingPipe(WRITING_PIPE); 
-  radio.openReadingPipe(1,READING_PIPE); 
+  radio.openWritingPipe(WRITING_PIPE);
+  radio.openReadingPipe(1,READING_PIPE);
   radio.startListening();
   radio.powerUp();
   radio.printDetails();
@@ -223,12 +223,15 @@ void report_to_server()
   if (burn_state != last_burn_state) {
     radio.stopListening();
     sprintf(payload, "%s %lu", burn_state, last_ms);
-    Serial.print("\tR:");Serial.print(payload); // DEBUG
-    if (radio.write(payload, strlen(payload))) {
-      process_server_ack_messages();
-    }
-    else {
-      Serial.print("\tReport to server failed"); // DEBUG
+    for (int i = 3; i > 0; i -= 1) {
+      Serial.print("\tR:");Serial.print(payload); // DEBUG
+      if (radio.write(payload, strlen(payload))) {
+        process_server_ack_messages();
+        break;
+      }
+      else {
+        Serial.print("\tReport to server failed"); // DEBUG
+      }
     }
     radio.startListening();
   }
@@ -249,7 +252,7 @@ void process_server_message()
   unsigned char length = radio.getDynamicPayloadSize();
   radio.read(payload, length);
   payload[length] = '\0'; // NULL terminate to make string processing simpler
-  Serial.println(payload); // DEBUG
+  Serial.print('\t');Serial.print(payload); // DEBUG
   (strncmp("BON", payload, 3) || buzzer_on())
   &&
   (strncmp("BOF", payload, 3) || buzzer_off())
@@ -276,6 +279,7 @@ int buzzer_off()
 
 int config_burn_up(const char args[])
 {
+  Serial.print("\tCBU:");Serial.print(args); // DEBUG
   long val = atol(args);
   if (val > 0 && val <= 86400000) burn_up_ms = val * 1000;
   return 0;
@@ -283,6 +287,7 @@ int config_burn_up(const char args[])
 
 int config_cool_down(const char args[])
 {
+  Serial.print("\tCCD:");Serial.print(args); // DEBUG
   long val = atol(args);
   if (val > 0 && val <= 86400000) cool_down_ms = val * 1000;
   return 0;
@@ -290,6 +295,7 @@ int config_cool_down(const char args[])
 
 int config_sensor_threshold(const char args[])
 {
+  Serial.print("\tCST:");Serial.print(args); // DEBUG
   long val = atol(args);
   if (val > 0) sensor_threshold = val;
   return 0;
@@ -297,6 +303,7 @@ int config_sensor_threshold(const char args[])
 
 int reset_state()
 {
+  Serial.print("\tRST"); // DEBUG
   last_ms = 0;
   burn_ms = 0;
   cool_ms = cool_down_ms;
