@@ -18,9 +18,6 @@ const int PIN_BUZZER = 6;
 
 // Set up 10M resistor between pins 4 & 2, pin 2 is sensor pin, add a wire and or foil if desired
 CapacitiveSensor capacitance_sensor = CapacitiveSensor(4,2);
-const unsigned long CAPACITANCE_SAMPLES = 60;
-const unsigned long AUTOCAL_TIMEOUT = 1000; // recalibrate every n milliseconds
-//const unsigned long AUTOCAL_TIMEOUT = 0xFFFFFFFF; // turn off autocalibrate
 
 // Set up nRF24L01 radio on SPI bus plus pins 9 & 10 
 RF24 radio(9,10);
@@ -40,6 +37,7 @@ boolean role_ping_out = 1, role_pong_back = 0;   // The two different roles.
 unsigned long burn_up_ms = 10000; // milliseconds per burn up cycle
 unsigned long cool_down_ms = 5000; // milliseconds per cool down cycle
 long sensor_threshold = 50;
+int buzzer_volume = 4;
 
 // State variables
 unsigned long last_ms;
@@ -50,11 +48,13 @@ bool was_burning; // previous state
 const char * burn_state;
 const char * last_burn_state;
 
-// Tweaking constants
+// Calibration
 const int BURN_SWITCH_OFF = -2;
 const int BURN_SWITCH_ON = 3;
-const int BUZZER_VOLUME = 4;
 const long DELAY_MS = 250;
+const unsigned long CAPACITANCE_SAMPLES = 100;
+const unsigned long AUTOCAL_TIMEOUT = 1000; // recalibrate capacitive sensing every n milliseconds
+//const unsigned long AUTOCAL_TIMEOUT = 0xFFFFFFFF; // turn off autocalibrate
 
 void setup()
 {
@@ -263,13 +263,15 @@ void process_server_message()
   &&
   (strncmp("CST", payload, 3) || config_sensor_threshold(payload+3))
   &&
+  (strncmp("CBV", payload, 3) || config_buzzer_volume(payload+3))
+  &&
   (strncmp("RST", payload, 3) || reset_state())
   ;
 }
 
 int buzzer_on()
 {
-  analogWrite(PIN_BUZZER, BUZZER_VOLUME);
+  analogWrite(PIN_BUZZER, buzzer_volume);
 }
 
 int buzzer_off()
@@ -298,6 +300,14 @@ int config_sensor_threshold(const char args[])
   Serial.print("\tCST:");Serial.print(args); // DEBUG
   long val = atol(args);
   if (val > 0) sensor_threshold = val;
+  return 0;
+}
+
+int config_buzzer_volume(const char args[])
+{
+  Serial.print("\tCBV:");Serial.print(args); // DEBUG
+  int val = min(max(atoi(args), 0), 50);
+  buzzer_volume = val;
   return 0;
 }
 
