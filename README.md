@@ -4,4 +4,4 @@ RasperDuino
 ## Quickstart
 Clone the repo
 
-    git clone //github.com/rasper/rasperduino.git
+    git clone https://github.com/rasper/rasperduino.git
